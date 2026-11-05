@@ -1,0 +1,40 @@
+sources:
+  docker_logs:
+    type: docker_logs
+    include_containers:
+      - "gateway"
+      - "uploader"
+      - "security"
+      - "storage"
+
+transforms:
+  filter_logs:
+    type: remap
+    inputs:
+      - docker_logs
+    source: |
+      . = {
+        "container_name": .container_name,
+        "message": .message,
+        "timestamp": .timestamp
+      }
+
+sinks:
+  elasticsearch:
+    type: elasticsearch
+    inputs:
+      - filter_logs
+    endpoints:
+      - "http://elasticsearch:9200"
+    mode: bulk
+    api_version: v8
+    bulk:
+      index: "app-logs-%Y.%m.%d"
+    compression: gzip
+    batch:
+      max_events: 1000
+      timeout_secs: 5
+    auth:
+      strategy: basic
+      user: elastic
+      password: qwerty123456
